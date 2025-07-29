@@ -1,0 +1,170 @@
+Organizations:
+  - &OrdererOrg
+      Name: OrdererOrg
+      ID: OrdererMSP
+      MSPDir: ../organizations/orderer-org/msp
+      Policies:
+          Readers:
+              Type: Signature
+              Rule: "OR('OrdererMSP.member')"
+          Writers:
+              Type: Signature
+              Rule: "OR('OrdererMSP.member')"
+          Admins:
+              Type: Signature
+              Rule: "OR('OrdererMSP.admin')"
+
+  - &VineyardOrg
+      Name: VineyardOrgMSP
+      ID: VineyardOrgMSP
+      MSPDir: ../organizations/vineyard-org/msp
+      Policies:
+          Readers:
+              Type: Signature
+              Rule: "OR('VineyardOrgMSP.member')"
+          Writers:
+              Type: Signature
+              Rule: "OR('VineyardOrgMSP.member')"
+          Admins:
+              Type: Signature
+              Rule: "OR('VineyardOrgMSP.admin')"
+
+  - &WineryOrg
+      Name: WineryOrgMSP
+      ID: WineryOrgMSP
+      MSPDir: ../organizations/winery-org/msp
+      Policies:
+          Readers:
+              Type: Signature
+              Rule: "OR('WineryOrgMSP.member')"
+          Writers:
+              Type: Signature
+              Rule: "OR('WineryOrgMSP.member')"
+          Admins:
+              Type: Signature
+              Rule: "OR('WineryOrgMSP.admin')"
+
+  - &DistributorOrg
+      Name: DistributorOrgMSP
+      ID: DistributorOrgMSP
+      MSPDir: ../organizations/distributor-org/msp
+      Policies:
+          Readers:
+              Type: Signature
+              Rule: "OR('DistributorOrgMSP.member')"
+          Writers:
+              Type: Signature
+              Rule: "OR('DistributorOrgMSP.member')"
+          Admins:
+              Type: Signature
+              Rule: "OR('DistributorOrgMSP.admin')"
+
+  - &ConsumerOrg
+      Name: ConsumerOrgMSP
+      ID: ConsumerOrgMSP
+      MSPDir: ../organizations/consumer-org/msp
+      Policies:
+          Readers:
+              Type: Signature
+              Rule: "OR('ConsumerOrgMSP.member')"
+          Writers:
+              Type: Signature
+              Rule: "OR('ConsumerOrgMSP.member')"
+          Admins:
+              Type: Signature
+              Rule: "OR('ConsumerOrgMSP.admin')"
+
+Capabilities:
+    Channel: &ChannelCapabilities
+        V2_0: true
+    Orderer: &OrdererCapabilities
+        V2_0: true
+    Application: &ApplicationCapabilities
+        V2_0: true
+
+Orderer: &OrdererDefaults
+    OrdererType: solo
+    Addresses:
+        - orderer.wine-traceability.com:7050
+    BatchTimeout: 2s
+    BatchSize:
+        MaxMessageCount: 10
+        AbsoluteMaxBytes: 99 MB
+        PreferredMaxBytes: 512 KB
+    Organizations:
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+        BlockValidation:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+    Capabilities:
+        <<: *OrdererCapabilities
+
+Application: &ApplicationDefaults
+    Organizations:
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+        LifecycleEndorsement:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Endorsement"
+        Endorsement:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Endorsement"
+    Capabilities:
+        <<: *ApplicationCapabilities
+
+Channel: &ChannelDefaults
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+    Capabilities:
+        <<: *ChannelCapabilities
+
+Profiles:
+    GenesisProfile:
+        <<: *ChannelDefaults
+        Orderer:
+            <<: *OrdererDefaults
+            Organizations:
+                - *OrdererOrg
+        Consortiums:
+            WineConsortium:
+                Organizations:
+                    - *VineyardOrg
+                    - *WineryOrg
+                    - *DistributorOrg
+                    - *ConsumerOrg
+
+    WineTraceabilityChannel:
+        Consortium: WineConsortium
+        <<: *ChannelDefaults
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *VineyardOrg
+                - *WineryOrg
+                - *DistributorOrg
+                - *ConsumerOrg

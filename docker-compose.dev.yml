@@ -1,0 +1,127 @@
+version: '3.8'
+
+services:
+  # Development Backend with hot reload
+  backend-dev:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: wine-traceability-backend-dev
+    ports:
+      - "5000:5000"
+      - "9229:9229"  # Debug port
+    environment:
+      - NODE_ENV=development
+      - PORT=5000
+      - FABRIC_NETWORK_PATH=/app/fabric-network
+      - CHANNEL_NAME=wine-traceability-channel
+      - JWT_SECRET=wine-traceability-jwt-secret-dev
+      - JWT_EXPIRE=24h
+      - MONGODB_URI=mongodb://wineapp:wineapp2024@mongodb:27017/wine_traceability
+      - REDIS_URL=redis://:redispass2024@redis:6379
+      - LOG_LEVEL=debug
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/package.json:/app/package.json
+      - ./fabric-network:/app/fabric-network:ro
+      - backend-logs:/app/logs
+    networks:
+      - wine-traceability-dev
+    restart: unless-stopped
+    depends_on:
+      - mongodb-dev
+      - redis-dev
+
+  # Development Frontend with hot reload
+  frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: wine-traceability-frontend-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000/api
+      - CHOKIDAR_USEPOLLING=true
+      - FAST_REFRESH=false
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/package.json:/app/package.json
+      - /app/node_modules
+    networks:
+      - wine-traceability-dev
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+  # Development MongoDB
+  mongodb-dev:
+    image: mongo:6.0
+    container_name: wine-traceability-mongodb-dev
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=wineadmin
+      - MONGO_INITDB_ROOT_PASSWORD=winepass2024
+      - MONGO_INITDB_DATABASE=wine_traceability
+    volumes:
+      - mongodb-dev-data:/data/db
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - wine-traceability-dev
+    restart: unless-stopped
+
+  # Development Redis
+  redis-dev:
+    image: redis:7-alpine
+    container_name: wine-traceability-redis-dev
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass redispass2024
+    volumes:
+      - redis-dev-data:/data
+    networks:
+      - wine-traceability-dev
+    restart: unless-stopped
+
+  # MongoDB Express for database management
+  mongo-express:
+    image: mongo-express:latest
+    container_name: wine-traceability-mongo-express
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=wineadmin
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=winepass2024
+      - ME_CONFIG_MONGODB_URL=mongodb://wineadmin:winepass2024@mongodb-dev:27017/
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=admin123
+    networks:
+      - wine-traceability-dev
+    depends_on:
+      - mongodb-dev
+    restart: unless-stopped
+
+  # Redis Commander for Redis management
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: wine-traceability-redis-commander
+    ports:
+      - "8082:8081"
+    environment:
+      - REDIS_HOSTS=local:redis-dev:6379:0:redispass2024
+    networks:
+      - wine-traceability-dev
+    depends_on:
+      - redis-dev
+    restart: unless-stopped
+
+volumes:
+  mongodb-dev-data:
+  redis-dev-data:
+  backend-logs:
+
+networks:
+  wine-traceability-dev:
+    driver: bridge

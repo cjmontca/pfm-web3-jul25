@@ -1,0 +1,175 @@
+Organizations:
+  - &OrdererOrg
+      Name: OrdererOrg
+      ID: OrdererMSP
+      MSPDir: organizations/orderer-org/msp
+      Policies:
+          Readers:
+              Type: Signature
+              Rule: "OR('OrdererMSP.member')"
+          Writers:
+              Type: Signature
+              Rule: "OR('OrdererMSP.member')"
+          Admins:
+              Type: Signature
+              Rule: "OR('OrdererMSP.admin')"
+      OrdererEndpoints:
+          - orderer.wine-traceability.com:7050
+
+  - &VineyardOrg
+      Name: VineyardOrgMSP
+      ID: VineyardOrgMSP
+      MSPDir: organizations/vineyard-org/msp
+      Policies:
+          Readers:
+              Type: Signature
+              Rule: "OR('VineyardOrgMSP.admin', 'VineyardOrgMSP.peer', 'VineyardOrgMSP.client')"
+          Writers:
+              Type: Signature
+              Rule: "OR('VineyardOrgMSP.admin', 'VineyardOrgMSP.client')"
+          Admins:
+              Type: Signature
+              Rule: "OR('VineyardOrgMSP.admin')"
+      AnchorPeers:
+          - Host: peer0.vineyard.wine-traceability.com
+            Port: 7051
+
+  - &WineryOrg
+      Name: WineryOrgMSP
+      ID: WineryOrgMSP
+      MSPDir: organizations/winery-org/msp
+      Policies:
+          Readers:
+              Type: Signature
+              Rule: "OR('WineryOrgMSP.admin', 'WineryOrgMSP.peer', 'WineryOrgMSP.client')"
+          Writers:
+              Type: Signature
+              Rule: "OR('WineryOrgMSP.admin', 'WineryOrgMSP.client')"
+          Admins:
+              Type: Signature
+              Rule: "OR('WineryOrgMSP.admin')"
+      AnchorPeers:
+          - Host: peer0.winery.wine-traceability.com
+            Port: 8051
+
+  - &DistributorOrg
+      Name: DistributorOrgMSP
+      ID: DistributorOrgMSP
+      MSPDir: organizations/distributor-org/msp
+      Policies:
+          Readers:
+              Type: Signature
+              Rule: "OR('DistributorOrgMSP.admin', 'DistributorOrgMSP.peer', 'DistributorOrgMSP.client')"
+          Writers:
+              Type: Signature
+              Rule: "OR('DistributorOrgMSP.admin', 'DistributorOrgMSP.client')"
+          Admins:
+              Type: Signature
+              Rule: "OR('DistributorOrgMSP.admin')"
+      AnchorPeers:
+          - Host: peer0.distributor.wine-traceability.com
+            Port: 9051
+
+  - &ConsumerOrg
+      Name: ConsumerOrgMSP
+      ID: ConsumerOrgMSP
+      MSPDir: organizations/consumer-org/msp
+      Policies:
+          Readers:
+              Type: Signature
+              Rule: "OR('ConsumerOrgMSP.admin', 'ConsumerOrgMSP.peer', 'ConsumerOrgMSP.client')"
+          Writers:
+              Type: Signature
+              Rule: "OR('ConsumerOrgMSP.admin', 'ConsumerOrgMSP.client')"
+          Admins:
+              Type: Signature
+              Rule: "OR('ConsumerOrgMSP.admin')"
+      AnchorPeers:
+          - Host: peer0.consumer.wine-traceability.com
+            Port: 9450
+
+Capabilities:
+    Channel: &ChannelCapabilities
+        V2_0: true
+    Orderer: &OrdererCapabilities
+        V2_0: true
+    Application: &ApplicationCapabilities
+        V2_0: true
+
+Application: &ApplicationDefaults
+    Organizations:
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+        LifecycleEndorsement:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Endorsement"
+        Endorsement:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Endorsement"
+    Capabilities:
+        <<: *ApplicationCapabilities
+
+Orderer: &OrdererDefaults
+    OrdererType: solo
+    Addresses:
+        - orderer.wine-traceability.com:7050
+    BatchTimeout: 2s
+    BatchSize:
+        MaxMessageCount: 10
+        AbsoluteMaxBytes: 99 MB
+        PreferredMaxBytes: 512 KB
+    Organizations:
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+        BlockValidation:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+    Capabilities:
+        <<: *OrdererCapabilities
+
+Channel: &ChannelDefaults
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+    Capabilities:
+        <<: *ChannelCapabilities
+
+Profiles:
+    WineTraceabilityGenesis:
+        <<: *ChannelDefaults
+        Orderer:
+            <<: *OrdererDefaults
+            Organizations:
+                - *OrdererOrg
+            Capabilities: *OrdererCapabilities
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *VineyardOrg
+                - *WineryOrg
+                - *DistributorOrg
+                - *ConsumerOrg
+            Capabilities: *ApplicationCapabilities

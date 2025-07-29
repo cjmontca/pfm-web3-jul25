@@ -1,0 +1,47 @@
+{
+    "name": "wine-traceability",
+    "version": "1.0.0",
+    "description": "Wine Traceability Smart Contract for Hyperledger Fabric",
+    "main": "index.js",
+    "engines": {
+        "node": ">=16.0.0",
+        "npm": ">=8.0.0"
+    },
+    "scripts": {
+        "start": "node index.js",
+        "lint": "eslint .",
+        "pretest": "npm run lint",
+        "test": "nyc mocha --recursive"
+    },
+    "engineStrict": true,
+    "author": "Wine Traceability System",
+    "license": "Apache-2.0",
+    "dependencies": {
+        "fabric-contract-api": "^2.4.1",
+        "fabric-shim": "^2.4.1"
+    },
+    "devDependencies": {
+        "chai": "^4.3.7",
+        "eslint": "^8.0.0",
+        "mocha": "^10.0.0",
+        "nyc": "^15.1.0",
+        "sinon": "^15.0.0",
+        "sinon-chai": "^3.7.0"
+    },
+    "nyc": {
+        "exclude": [
+            "coverage/**",
+            "test/**"
+        ],
+        "reporter": [
+            "text-summary",
+            "html"
+        ],
+        "all": true,
+        "check-coverage": true,
+        "statements": 80,
+        "branches": 80,
+        "functions": 80,
+        "lines": 80
+    }
+}

@@ -1,0 +1,305 @@
+version: '3.7'
+
+# Optimized configuration with 1 peer per organization
+# This reduces resource usage while maintaining full functionality
+
+volumes:
+  orderer.wine-traceability.com:
+  peer0.vineyard.wine-traceability.com:
+  peer0.winery.wine-traceability.com:
+  peer0.distributor.wine-traceability.com:
+  peer0.consumer.wine-traceability.com:
+
+networks:
+  wine-traceability:
+    name: wine-traceability
+
+services:
+
+  orderer.wine-traceability.com:
+    container_name: orderer.wine-traceability.com
+    image: hyperledger/fabric-orderer:2.4.7
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=7050
+      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      - ORDERER_GENERAL_TLS_ENABLED=true
+      - ORDERER_GENERAL_TLS_PRIVATE_KEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_BOOTSTRAPMETHOD=none
+      - ORDERER_CHANNELPARTICIPATION_ENABLED=true
+      - ORDERER_ADMIN_TLS_ENABLED=true
+      - ORDERER_ADMIN_TLS_PRIVATE_KEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_ADMIN_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_ADMIN_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_ADMIN_LISTENADDRESS=0.0.0.0:7053
+      - ORDERER_OPERATIONS_LISTENADDRESS=orderer.wine-traceability.com:9443
+      - ORDERER_METRICS_PROVIDER=prometheus
+      - ORDERER_CONSENSUS_TYPE=solo
+      - FABRIC_CFG_PATH=/var/hyperledger/orderer
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric
+    command: orderer
+    volumes:
+        - ../organizations/orderer-org/orderers/orderer.wine-traceability.com/msp:/var/hyperledger/orderer/msp
+        - ../organizations/orderer-org/orderers/orderer.wine-traceability.com/tls/:/var/hyperledger/orderer/tls
+        - ../config/orderer.yaml:/var/hyperledger/orderer/orderer.yaml
+        - ../genesis.block:/var/hyperledger/orderer/genesis.block
+        - orderer.wine-traceability.com:/var/hyperledger/production/orderer
+    ports:
+      - 7050:7050
+      - 7053:7053
+      - 9443:9443
+    networks:
+      - wine-traceability
+
+  peer0.vineyard.wine-traceability.com:
+    container_name: peer0.vineyard.wine-traceability.com
+    image: hyperledger/fabric-peer:latest
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=wine-traceability
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_PROFILE_ENABLED=false
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_PEER_ID=peer0.vineyard.wine-traceability.com
+      - CORE_PEER_ADDRESS=peer0.vineyard.wine-traceability.com:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.vineyard.wine-traceability.com:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.vineyard.wine-traceability.com:7051
+      - CORE_PEER_LOCALMSPID=VineyardOrgMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      - CORE_OPERATIONS_LISTENADDRESS=peer0.vineyard.wine-traceability.com:9444
+      - CORE_METRICS_PROVIDER=prometheus
+      - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0vineyard"}
+      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb0.vineyard:5984
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw
+    volumes:
+        - /var/run/:/host/var/run/
+        - ../organizations/vineyard-org/peers/peer0.vineyard.wine-traceability.com/msp:/etc/hyperledger/fabric/msp
+        - ../organizations/vineyard-org/peers/peer0.vineyard.wine-traceability.com/tls:/etc/hyperledger/fabric/tls
+        - peer0.vineyard.wine-traceability.com:/var/hyperledger/production
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    ports:
+      - 7051:7051
+      - 9444:9444
+    depends_on:
+      - couchdb0.vineyard
+    networks:
+      - wine-traceability
+
+  peer0.winery.wine-traceability.com:
+    container_name: peer0.winery.wine-traceability.com
+    image: hyperledger/fabric-peer:latest
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=wine-traceability
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_PROFILE_ENABLED=false
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_PEER_ID=peer0.winery.wine-traceability.com
+      - CORE_PEER_ADDRESS=peer0.winery.wine-traceability.com:8051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:8051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.winery.wine-traceability.com:8052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:8052
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.winery.wine-traceability.com:8051
+      - CORE_PEER_LOCALMSPID=WineryOrgMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      - CORE_OPERATIONS_LISTENADDRESS=peer0.winery.wine-traceability.com:9446
+      - CORE_METRICS_PROVIDER=prometheus
+      - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0winery"}
+      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb0.winery:5984
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw
+    volumes:
+        - /var/run/:/host/var/run/
+        - ../organizations/winery-org/peers/peer0.winery.wine-traceability.com/msp:/etc/hyperledger/fabric/msp
+        - ../organizations/winery-org/peers/peer0.winery.wine-traceability.com/tls:/etc/hyperledger/fabric/tls
+        - peer0.winery.wine-traceability.com:/var/hyperledger/production
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    ports:
+      - 8051:8051
+      - 9446:9446
+    depends_on:
+      - couchdb0.winery
+    networks:
+      - wine-traceability
+
+  peer0.distributor.wine-traceability.com:
+    container_name: peer0.distributor.wine-traceability.com
+    image: hyperledger/fabric-peer:latest
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=wine-traceability
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_PROFILE_ENABLED=false
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_PEER_ID=peer0.distributor.wine-traceability.com
+      - CORE_PEER_ADDRESS=peer0.distributor.wine-traceability.com:9051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:9051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.distributor.wine-traceability.com:9052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:9052
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.distributor.wine-traceability.com:9051
+      - CORE_PEER_LOCALMSPID=DistributorOrgMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      - CORE_OPERATIONS_LISTENADDRESS=peer0.distributor.wine-traceability.com:9448
+      - CORE_METRICS_PROVIDER=prometheus
+      - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0distributor"}
+      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb0.distributor:5984
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw
+    volumes:
+        - /var/run/:/host/var/run/
+        - ../organizations/distributor-org/peers/peer0.distributor.wine-traceability.com/msp:/etc/hyperledger/fabric/msp
+        - ../organizations/distributor-org/peers/peer0.distributor.wine-traceability.com/tls:/etc/hyperledger/fabric/tls
+        - peer0.distributor.wine-traceability.com:/var/hyperledger/production
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    ports:
+      - 9051:9051
+      - 9448:9448
+    depends_on:
+      - couchdb0.distributor
+    networks:
+      - wine-traceability
+
+  peer0.consumer.wine-traceability.com:
+    container_name: peer0.consumer.wine-traceability.com
+    image: hyperledger/fabric-peer:latest
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=wine-traceability
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_PROFILE_ENABLED=false
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_PEER_ID=peer0.consumer.wine-traceability.com
+      - CORE_PEER_ADDRESS=peer0.consumer.wine-traceability.com:9450
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:9450
+      - CORE_PEER_CHAINCODEADDRESS=peer0.consumer.wine-traceability.com:9452
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:9452
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.consumer.wine-traceability.com:9450
+      - CORE_PEER_LOCALMSPID=ConsumerOrgMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      - CORE_OPERATIONS_LISTENADDRESS=peer0.consumer.wine-traceability.com:10051
+      - CORE_METRICS_PROVIDER=prometheus
+      - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0consumer"}
+      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb0.consumer:5984
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw
+    volumes:
+        - /var/run/:/host/var/run/
+        - ../organizations/consumer-org/peers/peer0.consumer.wine-traceability.com/msp:/etc/hyperledger/fabric/msp
+        - ../organizations/consumer-org/peers/peer0.consumer.wine-traceability.com/tls:/etc/hyperledger/fabric/tls
+        - peer0.consumer.wine-traceability.com:/var/hyperledger/production
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    ports:
+      - 9450:9450
+      - 10051:10051
+    depends_on:
+      - couchdb0.consumer
+    networks:
+      - wine-traceability
+
+  # CouchDB Databases (1 per organization)
+  couchdb0.vineyard:
+    container_name: couchdb0.vineyard
+    image: couchdb:3.1.1
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=adminpw
+    ports:
+      - "5984:5984"
+    networks:
+      - wine-traceability
+
+  couchdb0.winery:
+    container_name: couchdb0.winery
+    image: couchdb:3.1.1
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=adminpw
+    ports:
+      - "6984:5984"
+    networks:
+      - wine-traceability
+
+  couchdb0.distributor:
+    container_name: couchdb0.distributor
+    image: couchdb:3.1.1
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=adminpw
+    ports:
+      - "7984:5984"
+    networks:
+      - wine-traceability
+
+  couchdb0.consumer:
+    container_name: couchdb0.consumer
+    image: couchdb:3.1.1
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=adminpw
+    ports:
+      - "8984:5984"
+    networks:
+      - wine-traceability
+
+  # CLI container for chaincode operations
+  cli:
+    container_name: cli
+    image: hyperledger/fabric-tools:latest
+    tty: true
+    stdin_open: true
+    environment:
+      - GOPATH=/opt/gopath
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_ID=cli
+      - CORE_PEER_ADDRESS=peer0.vineyard.wine-traceability.com:7051
+      - CORE_PEER_LOCALMSPID=VineyardOrgMSP
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/vineyard.wine-traceability.com/users/Admin@vineyard.wine-traceability.com/msp
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: /bin/bash
+    volumes:
+        - /var/run/:/host/var/run/
+        - ../chaincode/:/opt/gopath/src/github.com/hyperledger/fabric/examples/chaincode/go
+        - ../organizations:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations
+        - ../scripts:/opt/gopath/src/github.com/hyperledger/fabric/peer/scripts/
+        - ../channel-artifacts:/opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts
+    depends_on:
+      - orderer.wine-traceability.com
+      - peer0.vineyard.wine-traceability.com
+      - peer0.winery.wine-traceability.com
+      - peer0.distributor.wine-traceability.com
+      - peer0.consumer.wine-traceability.com
+    networks:
+      - wine-traceability
